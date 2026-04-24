@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Auth Test Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .token-display { max-height: 200px; overflow-y: auto; overflow-wrap: anywhere; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen text-slate-800">
+
+    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-gray-100">
+        <h2 class="text-2xl font-bold text-center mb-2">Welcome Back</h2>
+        <p class="text-sm text-gray-500 text-center mb-6">Continue securely with your Google Account.</p>
+
+        <!-- Mode Selection -->
+        <div class="flex items-center justify-center p-1 bg-gray-100 rounded-lg mb-6">
+            <label class="flex-1 text-center py-2 rounded-md cursor-pointer text-sm font-medium transition-colors" id="label-signup">
+                <input type="radio" name="authMode" value="signup" class="hidden" onchange="updateMode('signup')">
+                Sign Up
+            </label>
+            <label class="flex-1 text-center py-2 rounded-md cursor-pointer text-sm font-medium transition-colors bg-white shadow-sm" id="label-login">
+                <input type="radio" name="authMode" value="login" checked class="hidden" onchange="updateMode('login')">
+                Log In
+            </label>
+            <label class="flex-1 text-center py-2 rounded-md cursor-pointer text-sm font-medium transition-colors" id="label-unified">
+                <input type="radio" name="authMode" value="unified" class="hidden" onchange="updateMode('unified')">
+                Auto
+            </label>
+        </div>
+
+        <div class="mb-4 text-center">
+            <span class="text-xs text-gray-400 font-medium uppercase tracking-wide">Endpoint:</span> <br>
+            <span id="endpoint-display" class="text-xs font-mono text-blue-600 bg-blue-50 px-2 py-1 rounded">/auth/login/gmail</span>
+        </div>
+
+        <!-- Google button container -->
+        <div class="flex justify-center mb-6">
+            <div id="g_id_onload"
+                 data-client_id="335973337598-0hckgg1g7576s08k8i38u8hscobkt81h.apps.googleusercontent.com"
+                 data-context="use"
+                 data-ux_mode="popup"
+                 data-callback="handleCredentialResponse"
+                 data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin"
+                 data-type="standard"
+                 data-shape="rectangular"
+                 data-theme="outline"
+                 data-text="continue_with"
+                 data-size="large"
+                 data-logo_alignment="left">
+            </div>
+        </div>
+
+        <!-- Alert Box -->
+        <div id="alert-box" class="hidden p-4 mb-4 text-sm rounded-lg" role="alert">
+            <span class="font-medium" id="alert-title">Success!</span> <span id="alert-message"></span>
+        </div>
+
+        <!-- Token Data Box -->
+        <div id="token-box" class="hidden border rounded-lg bg-gray-50 text-xs w-full text-left p-3 mt-4 overflow-hidden">
+            <p class="font-semibold mb-2 text-gray-700">Received Access Token:</p>
+            <code id="access-token" class="text-green-600 block token-display bg-white p-2 border rounded"></code>
+            <button onclick="copyToken()" class="mt-3 w-full bg-slate-800 text-white py-1.5 rounded-md hover:bg-slate-700 transition font-medium">📋 Copy Access Token</button>
+        </div>
+
+    </div>
+
+    <script>
+        let currentMode = 'login';
+        
+        function updateMode(mode) {
+            currentMode = mode;
+            // Update UI styling
+            ['signup', 'login', 'unified'].forEach(m => {
+                const label = document.getElementById(`label-${m}`);
+                if (m === mode) {
+                    label.classList.add('bg-white', 'shadow-sm');
+                    label.classList.remove('text-gray-500');
+                } else {
+                    label.classList.remove('bg-white', 'shadow-sm');
+                    label.classList.add('text-gray-500');
+                }
+            });
+
+            // Update displayed endpoint
+            const endpoints = {
+                'signup': '/auth/signup/gmail',
+                'login': '/auth/login/gmail',
+                'unified': '/auth/gmail'
+            };
+            document.getElementById('endpoint-display').innerText = endpoints[mode];
+        }
+
+        async function handleCredentialResponse(response) {
+            const idToken = response.credential; // This is the Google ID Token
+            const endpoints = {
+                'signup': '/auth/signup/gmail',
+                'login': '/auth/login/gmail',
+                'unified': '/auth/gmail' // Calls googleSiginupAndLogin controller
+            };
+
+            const targetUrl = endpoints[currentMode];
+            
+            // Loading state
+            showAlert('blue', 'Processing...', 'Verifying with the server...');
+            document.getElementById('token-box').classList.add('hidden');
+
+            try {
+                const res = await fetch(targetUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken: idToken })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    showAlert('green', 'Success!', data.message || 'Operation successful');
+                    
+                    // Display token securely
+                    if (data.data && data.data.accessToken) {
+                        document.getElementById('token-box').classList.remove('hidden');
+                        document.getElementById('access-token').innerText = data.data.accessToken;
+                    } else if (data.data && data.data.credentials && data.data.credentials.accessToken) {
+                        // handling the 'unified' response shape which wraps it in `credentials`
+                        document.getElementById('token-box').classList.remove('hidden');
+                        document.getElementById('access-token').innerText = data.data.credentials.accessToken;
+                    }
+                } else {
+                    showAlert('red', 'Error!', data.message || 'An error occurred.');
+                }
+            } catch (error) {
+                showAlert('red', 'Network Error!', 'Failed to connect to the server.');
+                console.error(error);
+            }
+        }
+
+        function showAlert(color, title, message) {
+            const alertBox = document.getElementById('alert-box');
+            const colorClasses = {
+                'red': ['bg-red-50', 'text-red-800'],
+                'green': ['bg-green-50', 'text-green-800'],
+                'blue': ['bg-blue-50', 'text-blue-800']
+            };
+
+            // Reset classes
+            alertBox.className = `p-4 mb-4 text-sm rounded-lg ${colorClasses[color].join(' ')}`;
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-message').innerText = message;
+            alertBox.classList.remove('hidden');
+        }
+
+        function copyToken() {
+            const val = document.getElementById('access-token').innerText;
+            navigator.clipboard.writeText(val);
+            alert("Token copied to clipboard!");
+        }
+    </script>
+</body>
+</html>
