@@ -2,7 +2,7 @@ import { model, Schema } from "mongoose";
 import { IUser } from "../../common/interface/user.interface.js";
 import { GenderEnum, ProviderEnum, RoleEnum } from "../../common/enums/user.enum.js";
 import { generateHash } from "../../common/utils/security/hash.security.js";
-import { generatencrypt } from "../../common/utils/security/encryption.security.js";
+import { generateEncrypt } from "../../common/utils/security/encryption.security.js";
 
 
 
@@ -84,7 +84,7 @@ userSchema.pre("save", async function () {
     }
 
     if (this.isModified("phone") && this.phone) {
-        this.phone = await generatencrypt({ value: this.phone });
+        this.phone = await generateEncrypt({ value: this.phone });
     }
 });
 

@@ -1,8 +1,9 @@
 import { compare, hash } from 'bcrypt';
+import { configService } from '../../services/config.service.js';
 
 export const generateHash = async ({
   plainText,
-  saltRounds = Number(process.env.SALT_ROUND) || 10,
+  saltRounds = configService.get('SALT_ROUND'),
 }: {
   plainText: string;
   saltRounds?: number;

@@ -1,6 +1,6 @@
 import { configService } from './common/services/config.service.js';
 import express, { Request, Response, NextFunction } from "express";
-import { authRouter, userRouter } from "./modules/index.js";
+import { authRouter, userRouter , postRouter } from "./modules/index.js";
 import { globalErrorHandler } from "./middleware/index.js";
 import { NotFoundException } from "./common/exception/index.js";
 import connectDB from "./DB/connection.DB.js";
@@ -11,16 +11,19 @@ import { s3Service } from './common/services/s3.service.js';
 import { pipeline } from 'node:stream';
 import { promisify } from 'node:util';
 import { asyncHandler } from './common/utils/async-handler.util.js';
+import { notificationService } from './common/services/notification.service.js';
 
 const s3WriteStream = promisify(pipeline);
 
 const bootstrap = async (): Promise<void> => {
   const app: express.Express = express();
 
-  // Standard middleware
   app.use(express.json());
-  app.use(cors());
-
+  app.use(cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }));
   // Serve static files (Frontend Page)
   app.use(express.static('public'));
 
@@ -33,20 +36,40 @@ const bootstrap = async (): Promise<void> => {
     return successResponse({ res, message: "Server is healthy and running 🚀" });
   });
 
+  app.post("/send-notification", asyncHandler(async (req: Request, res: Response): Promise<express.Response> => {
+    try {
+      console.log(" Received FCM Token:", req.body.token);
+      await notificationService.sendNotification({
+        token: req.body.token,
+        data: {
+          title: "Welcome to our app",
+          body: "You have been successfully logged in."
+        }
+      });
+    } catch (error) {
+      console.log(error, "ceckcnksndkcvnskdnvkvnskdknsvknskdnvksndvkskdnvkskndvkskdnvksnvdkksdnvk")
+    }
+    return successResponse({ res, message: "FCM Token received successfully by backend", data: req.body });
+  }));
+
   // Module routers
   app.use("/auth", authRouter);
   app.use("/user", userRouter);
+  app.use("/post", postRouter);
+
 
   // S3 Routes (kept in bootstrap as per user request)
-  app.get('/upload/*path', asyncHandler(async (req, res) => {
+  app.get('/upload/*path', asyncHandler(async (req, res, next) => {
     const { download, fileName } = req.query as {
       download: string;
       fileName: string;
     };
+    console.log(req.query);
+    console.log(req.params.path);
+    const path = req.params.path;
 
-    const path = req.params[0]; // For * routes in Express, the path is in params[0]
-    const Key = path;
-
+    const Key = (path as string[]).join("/");
+    console.log(Key);
     const { Body, ContentType } = await s3Service.getImage({ Key });
 
     res.setHeader(
@@ -72,13 +95,16 @@ const bootstrap = async (): Promise<void> => {
     );
   }));
 
-  app.get('/pre-signed/*path', asyncHandler(async (req, res) => {
+  app.get('/pre-signed/*path', asyncHandler(async (req, res, next) => {
     const { download, fileName } = req.query as {
       download: string;
       fileName: string;
     };
 
     const path = req.params[0];
+    if (!path) {
+      return next(new NotFoundException('Path is required'));
+    }
     const Key = path;
 
     const url = await s3Service.createPresignedFetchLink({ Key, download, fileName });
@@ -87,10 +113,9 @@ const bootstrap = async (): Promise<void> => {
   }));
 
   // 404 Handler
-  app.all("*", (req: Request, res: Response, next: NextFunction) => {
+  app.all("/*dummy", (req: Request, res: Response, next: NextFunction) => {
     return next(new NotFoundException(`Route ${req.originalUrl} not found`));
   });
-
   // Global Error Handler
   app.use(globalErrorHandler);
 

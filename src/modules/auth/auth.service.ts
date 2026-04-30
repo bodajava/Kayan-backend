@@ -2,7 +2,7 @@ import { SignupDto, confirmEmailDto, ResendConfirmEmailDto, loginDTO } from "./a
 import { BadRequestException, ConflictException, NotFoundException, UnauthorizedException } from "../../common/exception/domain.exception.js";
 import { compareHash, generateHash } from "../../common/utils/security/hash.security.js";
 import { UserRepository } from "../../DB/repository/user.repository.js";
-import { generatencrypt } from "../../common/utils/security/encryption.security.js";
+import { generateEncrypt } from "../../common/utils/security/encryption.security.js";
 import { sendEmail } from "../../common/utils/email/send.email.js";
 import { emailTemplet } from "../../common/utils/email/templet.email.js";
 import { EmailEnum, EmailEnumType } from "../../common/enums/emailenum.js";
@@ -13,17 +13,20 @@ import { ProviderEnum } from "../../common/enums/user.enum.js";
 import { tokenService, TokenService } from "../../common/services/token.service.js";
 import { OAuth2Client } from "google-auth-library";
 import { configService } from "../../common/services/config.service.js";
+import { notificationService, NotificationService } from "../../common/services/notification.service.js";
 
 export class AuthenticationService {
   private readonly userRepository: UserRepository;
   private readonly redis: RedisService;
   private readonly tokenService: TokenService;
   private readonly googleClient = new OAuth2Client();
+  private readonly notification: NotificationService;
 
   constructor() {
     this.userRepository = new UserRepository();
     this.redis = redisService;
     this.tokenService = tokenService;
+    this.notification = notificationService;
   }
 
   public async signup(data: SignupDto): Promise<any> {
@@ -39,7 +42,7 @@ export class AuthenticationService {
       throw new BadRequestException("Email already exists");
     }
 
-    const encodedPhone = phone ? await generatencrypt({ value: phone }) : undefined;
+    const encodedPhone = phone ? await generateEncrypt({ value: phone }) : undefined;
 
     const userData = {
       ...restData,
@@ -144,7 +147,7 @@ export class AuthenticationService {
   }
 
   public async login(input: loginDTO, issuer: string): Promise<any> {
-    const { email, password } = input;
+    const { email, password, FCM } = input;
 
     const user = await this.userRepository.findOne({
       filter: {
@@ -163,6 +166,22 @@ export class AuthenticationService {
 
     if (!await compareHash({ plainText: password, cipherText: user.password })) {
       throw new UnauthorizedException("Invalid password");
+    }
+
+    if (FCM) {
+      await this.redis.addFCM(user._id, FCM)
+      const tokens = await this.redis.getFCMs(user._id);
+      console.log(tokens);
+
+      if (tokens?.length) {
+        await this.notification.sendNotificatios({
+          tokens,
+          data: {
+            title: "Login",
+            body: `You have been logged in to your account - ${new Date().toISOString()}`
+          }
+        });
+      }
     }
 
     return await this.tokenService.createTokenLogin(user, issuer);

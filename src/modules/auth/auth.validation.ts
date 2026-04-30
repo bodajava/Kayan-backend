@@ -4,7 +4,8 @@ import { validationGeneralFaild } from "../../common/validation/validation.faild
 export const loginSchema = {
     body: z.object({
         email: validationGeneralFaild.email,
-        password: validationGeneralFaild.password
+        password: validationGeneralFaild.password,
+        FCM: z.string().optional(),
     })
 };
 

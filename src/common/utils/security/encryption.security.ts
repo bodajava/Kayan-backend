@@ -3,7 +3,7 @@ import crypto from 'crypto';
 const algorithm = 'aes-256-cbc';
 const key = crypto.scryptSync(process.env.ENCRYPTION_KEY || 'default_secret_key', 'salt', 32);
 
-export const generatencrypt = ({ value }: { value: string }): string => {
+export const generateEncrypt = ({ value }: { value: string }): string => {
   if (!value) return value;
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv(algorithm, key, iv);
@@ -12,7 +12,7 @@ export const generatencrypt = ({ value }: { value: string }): string => {
   return `${iv.toString('hex')}:${encrypted}`;
 };
 
-export const generatdecrypt = ({ encryptedValue }: { encryptedValue: string }): string => {
+export const generateDecrypt = ({ encryptedValue }: { encryptedValue: string }): string => {
   if (!encryptedValue || !encryptedValue.includes(':')) return encryptedValue;
   const parts = encryptedValue.split(':');
   const ivHex = parts[0] as string;

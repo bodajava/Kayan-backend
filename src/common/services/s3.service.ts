@@ -8,7 +8,9 @@ import {
   DeleteObjectCommand,
   DeleteObjectCommandOutput,
   DeleteObjectsCommand,
-  DeleteObjectsCommandOutput
+  DeleteObjectsCommandOutput,
+  ListObjectsV2CommandOutput,
+  ListObjectsV2Command
 } from "@aws-sdk/client-s3";
 
 import { Upload } from "@aws-sdk/lib-storage";
@@ -22,7 +24,7 @@ import { configService } from "./config.service.js";
 export class S3Service {
   private client: S3Client | null = null;
 
-  constructor() {}
+  constructor() { }
 
   private getClient(): S3Client {
     if (!this.client) {
@@ -267,6 +269,37 @@ export class S3Service {
         }
       })
     );
+  }
+
+  async listFolderDir({
+    Bucket = configService.get('S3_BUCKET_NAME'),
+    prefix
+  }: {
+    Bucket?: string;
+    prefix: string;
+  }): Promise<ListObjectsV2CommandOutput> {
+    const command = new ListObjectsV2Command({
+      Bucket,
+      Prefix: prefix
+    })
+    return await this.getClient().send(command);
+  }
+
+  async deleteFolderByPrefix({
+    Bucket = configService.get('S3_BUCKET_NAME'),
+    prefix
+  }: {
+    Bucket?: string;
+    prefix: string;
+  }): Promise<DeleteObjectsCommandOutput | void> {
+    const result = await this.listFolderDir({ Bucket, prefix })
+    const Keys = result.Contents?.map(ele => { return { Key: ele.Key as string } }) as { Key: string }[]
+
+    if (!Keys?.length) {
+      return;
+    }
+
+    return await this.deleteImages({ Bucket, Keys })
   }
 }
 

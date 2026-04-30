@@ -49,4 +49,10 @@ userRouter.patch('/profile-cover-image', authentication(), cloudFileUpload({
   return successResponse({ res, message: "Profile cover images uploaded successfully.", data: { user } });
 }));
 
+
+userRouter.delete('/delete-profile', authentication(), asyncHandler(async (req: Request, res: Response) => {
+  const user = await userService.deleteProfile(req.user);
+  return successResponse({ res, message: "Profile deleted successfully.", data: { user } });
+}));
+
 export default userRouter;

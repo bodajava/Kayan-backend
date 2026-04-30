@@ -11,7 +11,7 @@ type RedisKeyType = {
 export class RedisService {
   private client: RedisClientType | null = null;
 
-  constructor() {}
+  constructor() { }
 
   public async connect() {
     try {
@@ -170,6 +170,31 @@ export class RedisService {
       return 0;
     }
   }
+
+
+
+  FCM_key(userId: Types.ObjectId | string): string {
+    return `user:FCM:${userId.toString()}`;
+  }
+  async addFCM(userId: Types.ObjectId | string, FCMToken: string) {
+    return await this.getClient.sAdd(this.FCM_key(userId), FCMToken);
+  }
+
+  async removeFCM(userId: Types.ObjectId | string, FCMToken: string) {
+    return await this.getClient.sRem(this.FCM_key(userId), FCMToken);
+  }
+
+  async getFCMs(userId: Types.ObjectId | string) {
+    return await this.getClient.sMembers(this.FCM_key(userId));
+  }
+
+  async hasFCMs(userId: Types.ObjectId | string) {
+    return await this.getClient.sCard(this.FCM_key(userId));
+  }
+
+  async removeFCMUser(userId: Types.ObjectId | string) {
+    return await this.getClient.del(this.FCM_key(userId));
+  }
 }
 
 export const redisService = new RedisService();
@@ -199,3 +224,7 @@ export const maxAttemptOtp = ({ email, subject }: RedisKeyType) => {
 export const pendingUserKey = (email: string) => {
   return `PendingUser::${email}`;
 };
+
+
+
+

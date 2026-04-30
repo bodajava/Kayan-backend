@@ -13,6 +13,7 @@ const configSchema = z.object({
   EMAIL_APP: z.string().email(),
   EMAIL_APP_PASSWORD: z.string(),
   REDIS_URI: z.string(),
+  SALT_ROUND: z.string().default('10').transform(Number),
   
   USER_ACCESS_TOKE_SIGNATURE: z.string(),
   USER_REFRISH_TOKE_SIGNATURE: z.string(),

@@ -37,6 +37,17 @@ export const validation = (schema: ValidationSchema) => {
                     })),
                 });
             }
+
+            if(req.file){
+                console.log(req.file);
+
+                req.body.file = req.file
+            }
+
+            if(req.files){
+                console.log(req.files);
+                
+            }
         }
 
         if (validationErrors.length > 0) {

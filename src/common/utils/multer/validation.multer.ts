@@ -1,4 +1,5 @@
 import { FileFilterCallback } from "multer";
+import { Request } from "express";
 import { BadRequestException } from "../../exception/domain.exception.js";
 
 export const fileFaildValifation = {

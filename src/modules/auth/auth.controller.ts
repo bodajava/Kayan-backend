@@ -17,7 +17,7 @@ authRouter.post("/signup", validation(signupSchema), asyncHandler(async (req: Re
 }));
 
 authRouter.post("/login", validation(loginSchema), asyncHandler(async (req: Request, res: Response) => {
-  const data = await authService.login(req.body, `${req.protocol}://${req.host}`);
+  const data = await authService.login(req.body, `${req.protocol}://${req.hostname}`);
   return successResponse({
     res,
     message: "Login successfully 👍",

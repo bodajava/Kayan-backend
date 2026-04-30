@@ -6,14 +6,16 @@ import { storageEnum, uploadEnum } from "../../enums/multer.enum.js";
 
 export const cloudFileUpload = ({
   storageApproach = storageEnum.MEMORY,
+  uploadApproach = uploadEnum.SMALL,
   validation = [],
-  maxSize = 2
+  maxSize,
 }: {
   validation: string[];
-  uploadApproach?: uploadEnum.LARGE;
+  uploadApproach?: uploadEnum;
   storageApproach?: storageEnum;
   maxSize?: number;
 }) => {
+  const resolvedMaxSize = maxSize ?? (uploadApproach === uploadEnum.LARGE ? 10 : 2);
   const storage = storageApproach === storageEnum.MEMORY 
     ? multer.memoryStorage() 
     : multer.diskStorage({
@@ -38,6 +40,6 @@ export const cloudFileUpload = ({
   return multer({ 
     fileFilter: fileFilter(validation), 
     storage, 
-    limits: { fileSize: maxSize * 1024 * 1024 } 
+    limits: { fileSize: resolvedMaxSize * 1024 * 1024 } 
   });
 };

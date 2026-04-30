@@ -1,5 +1,6 @@
 import z from "zod";
 import { GenderEnum, ProviderEnum, RoleEnum } from "../enums/user.enum.js";
+import { AvalibilityEnum } from "../enums/post.enum.js";
 
 /**
  * Common validation fields reused across the application.
@@ -30,5 +31,33 @@ export const validationGeneralFaild = {
     role: z.nativeEnum(RoleEnum).optional(),
     provider: z.nativeEnum(ProviderEnum).optional(),
     DOB: z.coerce.date().optional(),
-    otp : z.number()
+    otp: z.number(),
+
+    content: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    avalibality: z.coerce.number().default(AvalibilityEnum.PUBLIC),
+
+    file: function (mimetype: string[]) {
+        return z.strictObject({
+            fieldname: z.string(),
+            originalname: z.string(),
+            encoding: z.string(),
+            mimetype: z.enum(mimetype),
+            destination: z.string(),
+            filename: z.string(),
+            path: z.string().optional(),
+            buffer: z.any().optional(),
+            size: z.number(),
+        }).superRefine((args , ctx)=>{
+            if(!args.path && !args.buffer){
+                ctx.addIssue({
+                    path:['buffer'],
+                    code : "custom",
+                    message: "buffer is reqiered "
+                })
+            }
+        })
+    }
+
+
 };

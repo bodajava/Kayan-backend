@@ -49,7 +49,7 @@ export class TokenService {
   }
 
   private async verifyToken({ token, secretKey }: { token: string; secretKey: string }): Promise<JwtPayload | string> {
-    return jwt.verify(token, secretKey) as JwtPayload | string;
+    return jwt.verify(token, secretKey, { clockTolerance: 60 }) as JwtPayload | string;
   }
 
   private errorExecution({ message, statusCode }: { message: string; statusCode: number }) {
@@ -174,7 +174,7 @@ export class TokenService {
         throw new UnauthorizedException("Session expired. Please login again.");
       }
 
-      if (user.changeCredatielTime && user.changeCredatielTime.getTime() >= decoded.iat * 1000) {
+      if (user.changeCredatielTime && Math.floor(user.changeCredatielTime.getTime() / 1000) >= decoded.iat) {
         throw new UnauthorizedException("Session invalid due to security changes. Please login again.");
       }
 

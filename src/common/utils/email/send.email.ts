@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer"
 import Mail from "nodemailer/lib/mailer/index.js";
 import { BadRequestException } from "../../exception/domain.exception.js";
+import { configService } from "../../services/config.service.js";
 
 export const sendEmail = async ({
   to,
@@ -13,8 +14,8 @@ export const sendEmail = async ({
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: process.env.EMAIL_APP,
-      pass: process.env.EMAIL_APP_PASSWORD,
+      user: configService.get('EMAIL_APP'),
+      pass: configService.get('EMAIL_APP_PASSWORD'),
     },
   });
 
@@ -29,7 +30,7 @@ export const sendEmail = async ({
   // Send an email using async/await
   try {
     await transporter.sendMail({
-      from: `"social app" <${process.env.EMAIL_APP}>`,
+      from: `"social app" <${configService.get('EMAIL_APP')}>`,
       to,
       cc,
       bcc,
