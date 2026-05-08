@@ -1,4 +1,4 @@
-import { model, Schema } from "mongoose";
+import { model, Schema, Types } from "mongoose";
 import { IUser } from "../../common/interface/user.interface.js";
 import { GenderEnum, ProviderEnum, RoleEnum } from "../../common/enums/user.enum.js";
 import { generateHash } from "../../common/utils/security/hash.security.js";
@@ -46,6 +46,7 @@ const userSchema = new Schema<IUser>({
     confirmEmail: { type: Date },
     deletedAt: { type: Date },
     restoredAt: { type: Date },
+    frinds: [{ type: Types.ObjectId, ref: "User" }]
 
 
 }, {

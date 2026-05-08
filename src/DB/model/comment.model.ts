@@ -1,13 +1,8 @@
-import { model, Schema, UpdateQuery } from "mongoose";
-import { Ipost } from "../../common/interface/post.interface.js";
-import { AvalibilityEnum } from "../../common/enums/post.enum.js";
-
-const postSchema = new Schema<Ipost>(
+import { model, Schema, Types, UpdateQuery } from "mongoose";
+import { IComment } from "../../common/interface/comment.interface.js";
+const commentSchema = new Schema<IComment>(
     {
-        folderId: {
-            type: String,
-            required: true
-        },
+
 
         content: {
             type: String,
@@ -21,11 +16,7 @@ const postSchema = new Schema<Ipost>(
             default: []
         },
 
-        availability: {
-            type: Number,
-            enum: Object.values(AvalibilityEnum).filter(v => typeof v === 'number'),
-            default: AvalibilityEnum.PUBLIC
-        },
+
 
         likes: [
             {
@@ -33,6 +24,17 @@ const postSchema = new Schema<Ipost>(
                 ref: "User"
             }
         ],
+
+        postId: {
+            type: Types.ObjectId, ref: "Post", required: true
+        },
+
+
+        commentId: {
+            type: Types.ObjectId,
+            ref: "Comment",
+            default: null
+        },
 
         tags: [
             {
@@ -66,17 +68,11 @@ const postSchema = new Schema<Ipost>(
         toJSON: { virtuals: true },
         strict: true,
         strictQuery: true,
-        collection: "Post"
+        collection: "Comment"
     }
 );
 
-postSchema.virtual('comment', {
-    localField: "_id",
-    foreignField: "postId",
-    ref: "Comment"
-})
-
-postSchema.pre(["find", "findOne", "countDocuments"], function () {
+commentSchema.pre(["find", "findOne", "countDocuments"], function () {
 
     const { paranoid, ...query } = this.getQuery();
 
@@ -92,10 +88,10 @@ postSchema.pre(["find", "findOne", "countDocuments"], function () {
     }
 })
 
-postSchema.pre(["updateOne", "findOneAndUpdate"], function () {
+commentSchema.pre(["updateOne", "findOneAndUpdate"], function () {
 
     // fix type casting
-    const update = this.getUpdate() as UpdateQuery<Ipost> & Ipost
+    const update = this.getUpdate() as UpdateQuery<IComment> & IComment
 
 
     if (update.deletedAt) {
@@ -152,7 +148,7 @@ postSchema.pre(["updateOne", "findOneAndUpdate"], function () {
 
 })
 
-postSchema.pre(["deleteOne", "findOneAndDelete"], function () {
+commentSchema.pre(["deleteOne", "findOneAndDelete"], function () {
 
     const { force, ...query } = this.getQuery()
 
@@ -169,4 +165,10 @@ postSchema.pre(["deleteOne", "findOneAndDelete"], function () {
 
 })
 
-export const PostModel = model<Ipost>("Post", postSchema);
+commentSchema.virtual('replay', {
+    localField: "_id",
+    foreignField: "commentId",
+    ref: "Comment"
+})
+
+export const CommentModel = model<IComment>("Comment", commentSchema);

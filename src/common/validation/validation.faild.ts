@@ -1,12 +1,14 @@
 import z from "zod";
 import { GenderEnum, ProviderEnum, RoleEnum } from "../enums/user.enum.js";
 import { AvalibilityEnum } from "../enums/post.enum.js";
+import { Types } from "mongoose";
 
 /**
  * Common validation fields reused across the application.
  * Note: Named with 'faild' to match the user's requested import path.
  */
 export const validationGeneralFaild = {
+    id: z.string().refine(value => { return Types.ObjectId.isValid(value) }),
     userName: z.string()
         .min(2, "User name must be at least 2 characters")
         .max(50, "User name must not exceed 50 characters")
@@ -48,11 +50,11 @@ export const validationGeneralFaild = {
             path: z.string().optional(),
             buffer: z.any().optional(),
             size: z.number(),
-        }).superRefine((args , ctx)=>{
-            if(!args.path && !args.buffer){
+        }).superRefine((args, ctx) => {
+            if (!args.path && !args.buffer) {
                 ctx.addIssue({
-                    path:['buffer'],
-                    code : "custom",
+                    path: ['buffer'],
+                    code: "custom",
                     message: "buffer is reqiered "
                 })
             }
@@ -61,3 +63,13 @@ export const validationGeneralFaild = {
 
 
 };
+
+export const paginationValidationSchema = {
+    query: z.object({
+        page: z.coerce.number().optional(),
+        size: z.coerce.number().optional(),
+        search: z.string().optional()
+    })
+}
+
+export type PaginatDTO = z.infer<typeof paginationValidationSchema.query>

@@ -1,6 +1,6 @@
 import { configService } from './common/services/config.service.js';
 import express, { Request, Response, NextFunction } from "express";
-import { authRouter, userRouter , postRouter } from "./modules/index.js";
+import { authRouter, userRouter, postRouter } from "./modules/index.js";
 import { globalErrorHandler } from "./middleware/index.js";
 import { NotFoundException } from "./common/exception/index.js";
 import connectDB from "./DB/connection.DB.js";
@@ -56,6 +56,7 @@ const bootstrap = async (): Promise<void> => {
   app.use("/auth", authRouter);
   app.use("/user", userRouter);
   app.use("/post", postRouter);
+
 
 
   // S3 Routes (kept in bootstrap as per user request)

@@ -1,1 +1,1 @@
-export { default as userRouter } from "./post.controller.js"
+export { default as postRouter } from "./post.controller.js"

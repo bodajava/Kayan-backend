@@ -1,5 +1,6 @@
 import { configService } from "../common/services/config.service.js";
 import { connect } from "mongoose"
+import { PostModel } from "./model/post.model.js";
 import UserModel from "./model/user.model.js";
 
 export const connectDB = async () => {
@@ -10,6 +11,7 @@ export const connectDB = async () => {
             connectTimeoutMS: 30000,
         });
         await UserModel.createCollection();
+        await PostModel.createCollection();
 
         console.log(`Database connected successfully ✅`);
     } catch (error) {

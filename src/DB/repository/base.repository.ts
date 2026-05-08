@@ -4,14 +4,16 @@ import {
   QueryOptions,
   ProjectionType,
   AnyKeys,
+  UpdateQuery,
 } from 'mongoose';
+import { Ipagination } from '../../common/interface/pagination.interface.js';
 
 /**
  * Generic Database Repository providing common CRUD operations.
  * Optimized for Mongoose 9.x standards and type safety.
  */
 export class DataBaseRepository<TRowDoc> {
-  constructor(protected readonly model: Model<TRowDoc>) {}
+  constructor(protected readonly model: Model<TRowDoc>) { }
 
   // ==================== CREATE ====================
 
@@ -66,7 +68,43 @@ export class DataBaseRepository<TRowDoc> {
   }): Promise<any[]> {
     const query = this.model.find(filter, projection, options);
     if (options?.lean) return await query.lean();
+    if (options?.skip) return await query.lean();
+    if (options?.limit) return await query.lean();
     return await query;
+  }
+
+  async paginate({
+    filter,
+    projection,
+    options = {},
+    page = 0,
+    size = 5
+  }: {
+    filter: Record<string, any>;
+    projection?: ProjectionType<TRowDoc>;
+    options?: QueryOptions & { lean?: boolean };
+    page?: number | string | undefined;
+    size?: number | string | undefined;
+  }): Promise<Ipagination<TRowDoc>> {
+    let count: number = -1
+
+    if (Number(page) > 0) {
+      page = parseInt(page as string)
+      size = parseInt(size as string)
+      options.skip = (page - 1) * size
+      options.limit = size
+      count = await this.countDocuments({ filter })
+    }
+    const docs = await this.find({
+      filter: filter || {},
+      ...(projection !== undefined && { projection }),
+      ...(options !== undefined && { options })
+    })
+
+    return {
+      docs,
+      ...(Number(page) > 0 ? { currentPage: page, size: size, pages: Math.ceil(count / parseInt(size as string)) } : {}),
+    }
   }
 
   /**
@@ -106,6 +144,25 @@ export class DataBaseRepository<TRowDoc> {
   // ==================== UPDATE ====================
 
   /**
+   * Updates a single document matching the filter and returns it.
+   */
+  async findOneAndUpdate({
+    filter,
+    update,
+    options,
+  }: {
+    filter: Record<string, any>;
+    update: UpdateQuery<TRowDoc>;
+    options?: QueryOptions;
+  }): Promise<HydratedDocument<TRowDoc> | null> {
+    if (Array.isArray(update)) {
+      update.push({ $set: { __v: { $add: ["$__v", 1] } } })
+      return await this.model.findOneAndUpdate(filter, update, { ...options, updatePipeline: true, new: true })
+    }
+    return await this.model.findOneAndUpdate(filter, update, { ...options, $incr: { __v: 1 }, new: true })
+  }
+
+  /**
    * Updates a single document matching the filter.
    */
   async updateOne({
@@ -117,10 +174,11 @@ export class DataBaseRepository<TRowDoc> {
     update: any;
     options?: QueryOptions;
   }): Promise<HydratedDocument<TRowDoc> | null> {
-    return await this.model.findOneAndUpdate(filter, update, {
-      new: true,
-      ...(options as any),
-    }) as any;
+    return await this.findOneAndUpdate({
+      filter,
+      update,
+      ...(options !== undefined && { options })
+    });
   }
 
   /**

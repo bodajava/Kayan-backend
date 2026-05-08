@@ -31,8 +31,8 @@ export const globalErrorHandler = (error: IError, req: Request, res: Response, n
     message,
     statusCode,
     ...(errors && { errors }),
-    ...(!isProd && { 
-      cause: error.cause, 
+    ...(!isProd && {
+      cause: error.cause,
       stack: error.stack,
       error: error
     }),
